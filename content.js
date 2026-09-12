@@ -86,37 +86,104 @@ async function processarPerfil(profile, comentario) {
 
         // Encontrar botão de envio
         console.log('📍 Etapa 7: Procurando botão de envio...');
-        const botoes = Array.from(document.querySelectorAll('button'));
+        const botaoEnviado = await encontrarEClicarBotao();
         
-        let botaoPost = null;
-        
-        for (let botao of botoes) {
-            const texto = botao.textContent.trim().toLowerCase();
-            
-            if (texto === 'post' || texto === 'postar' || texto === 'send') {
-                if (!botao.disabled && botao.offsetParent !== null) {
-                    botaoPost = botao;
-                    break;
-                }
-            }
-        }
-
-        if (!botaoPost) {
-            console.log('❌ Botão POST não encontrado');
-            console.log(`Total de botões: ${botoes.length}`);
+        if (!botaoEnviado) {
+            console.log('❌ Botão de envio não encontrado');
             return false;
         }
 
-        console.log('✅ Botão POST encontrado! Clicando...');
-        botaoPost.click();
-        await aguardar(3000);
-
         console.log('✅ Comentário enviado com sucesso!');
+        await aguardar(2000);
         return true;
 
     } catch (erro) {
         console.error('❌ Erro durante processamento:', erro.message);
         console.error('Stack:', erro.stack);
+        return false;
+    }
+}
+
+async function encontrarEClicarBotao() {
+    try {
+        console.log('Procurando botão POST...');
+        
+        // Estratégia 1: Procurar por buttons normais
+        const buttons = document.querySelectorAll('button');
+        console.log(`Total de <button>: ${buttons.length}`);
+        
+        for (let botao of buttons) {
+            const texto = botao.textContent.trim().toLowerCase();
+            
+            if ((texto === 'post' || texto === 'postar' || texto === 'send' || texto === 'enviar') && !botao.disabled) {
+                if (botao.offsetParent !== null) {
+                    console.log(`✅ Botão <button> encontrado: "${texto}"`);
+                    botao.click();
+                    await aguardar(500);
+                    return true;
+                }
+            }
+        }
+
+        // Estratégia 2: Procurar por div com role="button" (Instagram pode usar isso)
+        console.log('Procurando <div> com role="button"...');
+        const divButtons = document.querySelectorAll('div[role="button"]');
+        console.log(`Total de <div role="button">: ${divButtons.length}`);
+        
+        for (let div of divButtons) {
+            const texto = div.textContent.trim().toLowerCase();
+            
+            if (texto === 'post' || texto === 'postar' || texto === 'send' || texto === 'enviar') {
+                if (div.offsetParent !== null) {
+                    console.log(`✅ Div POST encontrada: "${texto}"`);
+                    div.click();
+                    div.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                    await aguardar(500);
+                    return true;
+                }
+            }
+        }
+
+        // Estratégia 3: Procurar por qualquer elemento clicável com texto "post"
+        console.log('Procurando qualquer elemento com texto "post"...');
+        const todosElementos = document.querySelectorAll('*');
+        
+        for (let el of todosElementos) {
+            const texto = el.textContent.trim().toLowerCase();
+            const role = el.getAttribute('role') || '';
+            
+            if ((texto === 'post' || texto === 'postar') && 
+                (role === 'button' || el.tagName === 'BUTTON') &&
+                el.offsetParent !== null) {
+                
+                console.log(`✅ Elemento encontrado: ${el.tagName}, role: ${role}, texto: "${texto}"`);
+                
+                // Usar diferentes métodos para clicar
+                el.click();
+                el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                
+                await aguardar(500);
+                return true;
+            }
+        }
+
+        // Estratégia 4: Última tentativa - procurar por qualquer elemento que tenha exatamente "Postar"
+        console.log('Última tentativa: procurando por "Postar" exato...');
+        for (let el of todosElementos) {
+            if (el.innerText && el.innerText.trim() === 'Postar' && el.offsetParent !== null) {
+                console.log(`✅ Elemento "Postar" encontrado: ${el.tagName}`);
+                el.click();
+                el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                await aguardar(500);
+                return true;
+            }
+        }
+
+        console.log('❌ Nenhum botão POST foi encontrado');
+        return false;
+
+    } catch (erro) {
+        console.error('Erro ao encontrar botão:', erro);
         return false;
     }
 }
