@@ -1,18 +1,30 @@
 console.log('✅ Content script do Instagram carregado!');
 
+let processandoAtualmente = false;
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('📨 Mensagem recebida no content script:', request.action);
     
     if (request.action === 'processProfile') {
+        // Prevenir execução duplicada
+        if (processandoAtualmente) {
+            console.log('⚠️ Já está processando um perfil, ignorando mensagem duplicada');
+            sendResponse({ success: false });
+            return;
+        }
+
         console.log('Começando a processar perfil:', request.profile);
+        processandoAtualmente = true;
         
         processarPerfil(request.profile, request.comment)
             .then(resultado => {
                 console.log('Resultado final:', resultado);
+                processandoAtualmente = false;
                 sendResponse({ success: resultado });
             })
             .catch(erro => {
                 console.error('Erro no content script:', erro);
+                processandoAtualmente = false;
                 sendResponse({ success: false });
             });
         
